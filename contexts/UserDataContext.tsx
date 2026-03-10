@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState } from "react";
 
 interface GitUser {
+  login: string;
   avatar_url: string;
   name: string;
   followers: number;
@@ -36,18 +37,22 @@ export function UserDataProvider({ children }: UserDataProviderProps) {
   const [error, setError] = useState<any>();
 
   const handleSetUser = (user: any, userRepos: any[]) => {
+    if (!user) return;
+    const { login, avatar_url, name, followers, following, html_url, repos_url } = user;
+
     setUserState(prev => {
       return {
         ...prev,
+        userRepos,
         user: {
-          avatar_url: user?.avatar_url,
-          name: user?.name,
-          followers: user?.followers,
-          following: user?.following,
-          html_url: user?.html_url,
-          repos_url: user?.repos_url
-        },
-        userRepos
+          login,
+          avatar_url,
+          name,
+          followers,
+          following,
+          html_url,
+          repos_url
+        }
       }
     });
   }
@@ -64,9 +69,16 @@ export function UserDataProvider({ children }: UserDataProviderProps) {
       ]);
 
       const [user, repos] = await Promise.all(res.map(item => item.json()));
+      const error = user.error || repos.error;
+
+      if (error) {
+        setError(error)
+        return;
+      }
+
       handleSetUser(user, repos);
-    } catch (err: any) {
-      setError(err?.error);
+    } catch {
+      setError('An error occured trying to fetch the user data!');
     } finally {
       setLoading(false);
     }

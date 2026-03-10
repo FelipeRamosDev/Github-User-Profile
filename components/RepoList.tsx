@@ -35,7 +35,9 @@ export default function ReposList() {
       <tbody>
         {repos.map((item) => (
           <tr key={item.id || item.html_url || item.name}>
-            <th scope="row"><a href={`/repo/FelipeRamosDev/${item.name}`}>{item.name || 'Unnamed repository'}</a></th>
+            <th scope="row">
+              <a href={`/repo/${state.user?.login}/${item.name}`}>{item.name || 'Unnamed repository'}</a>
+            </th>
             <td>{item.description || 'No description provided.'}</td>
             <td>{item.stargazers_count}</td>
             <td>{item.forks}</td>
