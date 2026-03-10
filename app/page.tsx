@@ -1,3 +1,4 @@
+import ReposList from "@/components/RepoList";
 import SearchUser from "@/components/SearchUser";
 import UserBadge from "@/components/UserBadge";
 import { UserDataProvider } from "@/contexts/UserDataContext";
@@ -28,7 +29,7 @@ export default function HomePage() {
           {/* TODO: Candidate implements RepoList */}
           <section aria-label="Repositories section">
             <h2>Repositories</h2>
-            <p>TODO: Render repository list with pagination and sorting.</p>
+            <ReposList />
           </section>
         </main>
       </UserDataProvider>
