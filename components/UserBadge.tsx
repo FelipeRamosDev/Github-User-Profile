@@ -9,7 +9,7 @@ export default function UserBadge() {
     return <p role="status" aria-live="polite">Search for a user.</p>
   }
 
-  const userName = state.user.name || "GitHub user";
+  const userName = state.user.name || state.user.login;
 
   return <div className="UserBadge">
     <div className="image-wrap">
@@ -23,15 +23,17 @@ export default function UserBadge() {
     </div>
 
     <div className="user-data">
-      <div aria-label="Name">
-        <label>Name:</label>
-        <span>{state.user.name || "Not provided"}</span>
-      </div>
+      <dl>
+        <div>
+          <dt>Name</dt>
+          <dd>{state.user.name || state.user.login}</dd>
+        </div>
 
-      <div aria-label="Followers / Following">
-        <label>Followers / Following:</label>
-        <span>{state.user.followers} / {state.user.following}</span>
-      </div>
+        <div>
+          <dt>Followers / Following</dt>
+          <dd>{state.user.followers} / {state.user.following}</dd>
+        </div>
+      </dl>
 
       <a href={state.user.html_url} aria-label={`View ${userName} profile on GitHub`}>
         View profile on GitHub

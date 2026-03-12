@@ -6,7 +6,7 @@ import { UserDataProvider } from "@/contexts/UserDataContext";
 export default function HomePage() {
     return (
       <UserDataProvider>
-        <main id="main" style={{ padding: 16 }}>
+        <main id="main" className="main-content">
           <h1>GitHub Profile Explorer</h1>
           <p>
             Starter project for the frontend coding challenge. Follow README.md.
@@ -20,14 +20,10 @@ export default function HomePage() {
             <SearchUser />
           </section>
     
-          {/* TODO: Candidate implements UserBadge */}
-          <section aria-label="User section">
+          <section aria-label="Results section" id="results-region" tabIndex={-1}>
             <h2>User</h2>
             <UserBadge />
-          </section>
-    
-          {/* TODO: Candidate implements RepoList */}
-          <section aria-label="Repositories section">
+
             <h2>Repositories</h2>
             <ReposList />
           </section>

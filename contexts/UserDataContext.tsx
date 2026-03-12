@@ -1,94 +1,174 @@
 'use client'
 
 import React, { createContext, useContext, useState } from "react";
+import { GithubRepo, GithubUser, RepoSortMode, UserDataContextValue, UserDataProviderProps, UserDataState } from "@/lib/types";
 
-interface GitUser {
-  login: string;
-  avatar_url: string;
-  name: string;
-  followers: number;
-  following: number;
-  html_url: string;
-  repos_url: string;
-}
-
-interface UserDataContextValue {
-  state: UserDataState | null;
-  loading: boolean;
-  error: any;
-  fetchUserData: (query: string) => Promise<void>;
-}
-
-interface UserDataState {
-  user: GitUser | null;
-  userRepos: any[];
-}
-
-interface UserDataProviderProps {
-  children: React.ReactNode;
-}
-
-const userDataStateDefault = { user: null, userRepos: [], repos_url: null };
+const PER_PAGE = 20;
+const userDataStateDefault: UserDataState = {
+  user: null,
+  userRepos: [],
+  page: 1,
+  hasMore: false,
+  sortMode: "updated",
+  searchToken: 0
+};
 const UserDataContext = createContext<UserDataContextValue | undefined>(undefined);
 
 export function UserDataProvider({ children }: UserDataProviderProps) {
   const [userDataState, setUserState] = useState<UserDataState>(userDataStateDefault);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<any>();
+  const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>("Search for a user.");
 
-  const handleSetUser = (user: any, userRepos: any[]) => {
-    if (!user) return;
-    const { login, avatar_url, name, followers, following, html_url, repos_url } = user;
+  const fetchRepos = async (username: string, page: number, sortMode: RepoSortMode) => {
+    const response = await fetch(
+      `/api/github/repos?username=${encodeURIComponent(username)}&page=${page}&sort=${sortMode}`
+    );
+    const data = await response.json();
 
-    setUserState(prev => {
-      return {
-        ...prev,
-        userRepos,
-        user: {
-          login,
-          avatar_url,
-          name,
-          followers,
-          following,
-          html_url,
-          repos_url
-        }
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error("User not found.");
       }
-    });
-  }
+
+      throw new Error(data?.error || "Unable to fetch repositories.");
+    }
+
+    return Array.isArray(data) ? (data as GithubRepo[]) : [];
+  };
+
+  const fetchUser = async (query: string) => {
+    const response = await fetch(`/api/github/user?username=${encodeURIComponent(query)}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error("User not found.");
+      }
+
+      throw new Error(data?.error || "Unable to fetch user.");
+    }
+
+    return data as GithubUser;
+  };
 
   const fetchUserData = async (query: string) => {
-    if (!query?.trim()) return;
+    const cleanQuery = query.trim();
+
+    if (!cleanQuery) {
+      setError("Please provide a username.");
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
+      setStatusMessage("Loading user and repositories...");
 
-      const res = await Promise.all([
-        fetch(`/api/github/user?username=${query}`),
-        fetch(`/api/github/repos?username=${query}`)
+      const [user, repos] = await Promise.all([
+        fetchUser(cleanQuery),
+        fetchRepos(cleanQuery, 1, userDataState.sortMode)
       ]);
 
-      const [user, repos] = await Promise.all(res.map(item => item.json()));
-      const error = user.error || repos.error;
-
-      if (error) {
-        setError(error)
-        return;
-      }
-
-      handleSetUser(user, repos);
-    } catch {
-      setError('An error occured trying to fetch the user data!');
+      setUserState((prev) => ({
+        ...prev,
+        user,
+        userRepos: repos,
+        page: 1,
+        hasMore: repos.length === PER_PAGE,
+        searchToken: prev.searchToken + 1
+      }));
+      setStatusMessage(`Loaded ${repos.length} repositories for ${user.login}.`);
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to fetch user data.";
+      setError(message);
+      setStatusMessage(message);
+      setUserState((prev) => ({
+        ...prev,
+        user: null,
+        userRepos: [],
+        page: 1,
+        hasMore: false
+      }));
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const loadMoreRepos = async () => {
+    if (!userDataState.user || loading || !userDataState.hasMore) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setStatusMessage("Loading more repositories...");
+
+      const nextPage = userDataState.page + 1;
+      const nextRepos = await fetchRepos(userDataState.user.login, nextPage, userDataState.sortMode);
+
+      setUserState((prev) => ({
+        ...prev,
+        page: nextPage,
+        userRepos: [...prev.userRepos, ...nextRepos],
+        hasMore: nextRepos.length === PER_PAGE
+      }));
+      setStatusMessage(`Loaded ${nextRepos.length} more repositories.`);
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to load more repositories.";
+      setError(message);
+      setStatusMessage(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setSortMode = async (sortMode: RepoSortMode) => {
+    if (!userDataState.user) {
+      setUserState((prev) => ({
+        ...prev,
+        sortMode
+      }));
+      return;
+    }
+
+    if (sortMode === userDataState.sortMode) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setStatusMessage(`Sorting repositories by ${sortMode === "updated" ? "recent updates" : "stars"}...`);
+
+      const repos = await fetchRepos(userDataState.user.login, 1, sortMode);
+
+      setUserState((prev) => ({
+        ...prev,
+        sortMode,
+        userRepos: repos,
+        page: 1,
+        hasMore: repos.length === PER_PAGE
+      }));
+      setStatusMessage(`Showing repositories sorted by ${sortMode === "updated" ? "recent updates" : "stars"}.`);
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : "Unable to change sort mode.";
+      setError(message);
+      setStatusMessage(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return <UserDataContext.Provider value={{
     state: userDataState,
     fetchUserData,
+    loadMoreRepos,
+    setSortMode,
     loading,
-    error
+    error,
+    statusMessage
   }}>
     {children}
   </UserDataContext.Provider>

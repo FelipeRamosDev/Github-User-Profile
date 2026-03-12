@@ -5,12 +5,9 @@
 'use client';
 
 import useRepoDetails from "@/hooks/useRepoDetails";
+import { RepoPageProps } from "@/lib/types";
 
-type PageProps = {
-  params: { owner: string; repo: string };
-};
-
-export default function RepoPage({ params }: PageProps) {
+export default function RepoPage({ params }: RepoPageProps) {
   const { owner, repo } = params;
   const { repoData, loading, error } = useRepoDetails(owner, repo);
   const isSuccess = repoData && !loading && !error;
@@ -36,40 +33,40 @@ export default function RepoPage({ params }: PageProps) {
 
         <p>{repoData.description || 'No description provided.'}</p>
 
-        <div>
-          <label>Language</label>
-          <p>{repoData.language || 'Not specified'}</p>
+        <dl>
+          <dt>Language</dt>
+          <dd>{repoData.language || 'Not specified'}</dd>
 
-          <label>Default branch</label>
-          <p>{repoData.default_branch}</p>
+          <dt>Default branch</dt>
+          <dd>{repoData.default_branch}</dd>
 
-          <label>Stars</label>
-          <p>{repoData.stargazers_count}</p>
+          <dt>Stars</dt>
+          <dd>{repoData.stargazers_count}</dd>
 
-          <label>Watchers</label>
-          <p>{repoData.watchers_count}</p>
+          <dt>Watchers</dt>
+          <dd>{repoData.watchers_count}</dd>
 
-          <label>Forks</label>
-          <p>{repoData.forks_count}</p>
+          <dt>Forks</dt>
+          <dd>{repoData.forks_count}</dd>
 
-          <label>Open issues</label>
-          <p>{repoData.open_issues_count}</p>
+          <dt>Open issues</dt>
+          <dd>{repoData.open_issues_count}</dd>
 
-          <label>Created</label>
-          <p>
+          <dt>Created</dt>
+          <dd>
             <time dateTime={repoData.created_at}>{new Date(repoData.created_at).toLocaleString()}</time>
-          </p>
+          </dd>
 
-          <label>Last updated</label>
-          <p>
+          <dt>Last updated</dt>
+          <dd>
             <time dateTime={repoData.updated_at}>{new Date(repoData.updated_at).toLocaleString()}</time>
-          </p>
+          </dd>
 
-          <label>Last push</label>
-          <p>
+          <dt>Last push</dt>
+          <dd>
             <time dateTime={repoData.pushed_at}>{new Date(repoData.pushed_at).toLocaleString()}</time>
-          </p>
-        </div>
+          </dd>
+        </dl>
 
         <p>
           <a href={repoData.html_url} target="_blank" rel="noreferrer">

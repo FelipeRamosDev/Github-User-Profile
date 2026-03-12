@@ -1,33 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
-export interface RepoDetails {
-  id: number;
-  name: string;
-  full_name: string;
-  description: string | null;
-  html_url: string;
-  homepage: string | null;
-  stargazers_count: number;
-  forks_count: number;
-  open_issues_count: number;
-  watchers_count: number;
-  language: string | null;
-  default_branch: string;
-  created_at: string;
-  updated_at: string;
-  pushed_at: string;
-}
-
-interface UseRepoDetailsResult {
-  repoData: RepoDetails | null;
-  loading: boolean;
-  error: string | null;
-}
+import { GithubRepoDetails, UseRepoDetailsResult } from '@/lib/types';
 
 export default function useRepoDetails(owner: string, repo: string): UseRepoDetailsResult {
-  const [repoData, setRepoData] = useState<RepoDetails | null>(null);
+  const [repoData, setRepoData] = useState<GithubRepoDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,19 +27,18 @@ export default function useRepoDetails(owner: string, repo: string): UseRepoDeta
         setError(null);
 
         const response = await fetch(`/api/github/repo-details?username=${encodeURIComponent(cleanOwner)}&reponame=${encodeURIComponent(cleanRepo)}`);
+        const data = await response.json();
 
         if (!response.ok) {
           if (response.status === 404) {
             throw new Error('Repository not found. Check owner/repo and try again.');
           }
 
-          throw new Error(`GitHub request failed with status ${response.status}.`);
+          throw new Error(data?.error || `GitHub request failed with status ${response.status}.`);
         }
 
-        const data = await response.json();
-
         if (isActive) {
-          setRepoData(data as RepoDetails);
+          setRepoData(data as GithubRepoDetails);
         }
       } catch (requestError) {
         if (isActive) {

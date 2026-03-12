@@ -24,8 +24,8 @@ export async function GET(req: Request) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: "Unable to fetch user repository", status: res.status },
-        { status: 502 }
+        { error: data?.message || "Unable to fetch user repository", status: res.status },
+        { status: res.status === 404 ? 404 : 502 }
       );
     }
 
